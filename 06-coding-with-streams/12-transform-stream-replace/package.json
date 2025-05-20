@@ -1,11 +1,12 @@
 {
   "name": "12-transform-stream-replace",
   "version": "1.0.0",
-  "description": "",
+  "description": "This examples shows how to create a custom transform stream.",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index"
   },
   "keywords": [],
   "author": "",

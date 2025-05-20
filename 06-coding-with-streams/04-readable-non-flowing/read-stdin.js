@@ -1,11 +1,11 @@
+let message = "";
 process.stdin
-  .on('readable', () => {
-    let chunk
-    console.log('New data available')
+  .on("readable", () => {
+    let chunk;
+    console.log("New data available");
     while ((chunk = process.stdin.read()) !== null) {
-      console.log(
-        `Chunk read (${chunk.length} bytes): "${chunk.toString()}"`
-      )
+      console.log(`Chunk read (${chunk.length} bytes): "${chunk.toString()}"`);
+      message += " " + chunk.toString().trim();
     }
   })
-  .on('end', () => console.log('End of stream'))
+  .on("end", () => console.log("End of stream ", message));
