@@ -1,0 +1,3 @@
+gzip, efficiency: 2.4731182795698925 time in ms: 13 
+deflate, efficiency: 2.480075011720581 time in ms: 2 
+brotli, efficiency: 2.938072757567342 time in ms: 27 
