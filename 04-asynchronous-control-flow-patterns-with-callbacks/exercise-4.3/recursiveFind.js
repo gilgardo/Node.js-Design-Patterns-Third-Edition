@@ -12,6 +12,7 @@ function recursiveFind(dir, keyword, cb) {
       if (pending === 0) return done();
 
       let called = false;
+
       function readSubDir(newDir) {
         readDirRecursive(newDir, (err) => {
           if (err && !called) {
@@ -48,7 +49,7 @@ function recursiveFind(dir, keyword, cb) {
 
   readDirRecursive(dir, (err) => {
     if (err) return cb(err);
-    cb(null, filesInfo);
+    cb(_, filesInfo);
   });
 }
 
