@@ -31,17 +31,16 @@ function demultiplexChannel(source, destinations) {
           return null;
         }
       }
-      chunk = source.read(currentLength); // (4)
+      chunk = source.read(currentLength); 
       if (chunk === null) {
         return null;
       }
       console.log(`Received packet from: ${currentChannel}`);
-      destinations[currentChannel].write(chunk); // (5)
+      destinations[currentChannel].write(chunk); 
       currentChannel = null;
       currentLength = null;
     })
     .on("end", () => {
-      // (6)
       destinations.forEach((destination) => destination.end());
       console.log("Source channel closed");
     });
