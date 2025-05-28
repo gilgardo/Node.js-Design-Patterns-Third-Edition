@@ -7,19 +7,37 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const logPlaces = ["log", "debug", "info", "warn", "error"];
 
 class Logger {
+  #logPlaces;
+  #sendStrategy;
   constructor(sendStrategy, logPlaces) {
-    this.sendStrategy = sendStrategy;
-    this.logPlaces = logPlaces;
+    this.#logPlaces = logPlaces;
+    this.#sendStrategy = sendStrategy;
+    this.sendStrategyIstance = sendStrategy(logPlaces);
+  }
+  getLogPlaces() {
+    return this.#logPlaces;
+  }
+  setLogPlaces(places) {
+    this.#logPlaces = places;
+    this.sendStrategyIstance = this.#sendStrategy(this.#logPlaces);
+  }
+  setSendStrategy(strategy) {
+    this.#sendStrategy = strategy;
+    this.sendStrategyIstance = this.#sendStrategy(this.#logPlaces);
   }
 }
 
 const decorateLogger = (strategy) => {
-  const logger = new Logger(strategy(logPlaces), logPlaces);
+  const logger = new Logger(strategy, logPlaces);
   return new Proxy(logger, {
     get(target, prop, receiver) {
       if (prop in target) return Reflect.get(target, prop, receiver);
-      if (!target.logPlaces.includes(prop)) throw new Error("invalid prop");
-      return (...arg) => target.sendStrategy[prop](...arg);
+      if (!target.getLogPlaces().includes(prop))
+        throw new Error("invalid prop");
+      return (...arg) => target.sendStrategyIstance[prop](...arg);
+    },
+    has(target, prop) {
+      return prop in target || target.getLogPlaces().includes(prop);
     },
   });
 };
