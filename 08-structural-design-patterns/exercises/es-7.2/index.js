@@ -5,49 +5,82 @@
 // send the request, provide an invoke() method that returns a Promise for the
 // invocation. You can find the docs for http.request() at the following URL:
 // nodejsdp.link/docs-http-request.
-import { request } from "http";
 
-class Request {
-  constructor(reqObj, cb) {
-    this.reqObj = reqObj;
-    this.cb = cb;
-  }
-  build() {
-    return request(this.reqObj, this.cb);
-  }
-}
+import { request } from "http";
+import { stringify } from "querystring";
 
 class RequestBuilder {
   constructor() {
-    this.reqObj = {};
+    this.reqOptions = {
+      protocol: "http:",
+      hostname: "localhost",
+      port: 80,
+      path: "/",
+      method: "GET",
+      headers: {},
+    };
+    this.queryParams = {};
+    this.bodyData = null;
   }
-  setCallback(cb) {
-    this.cb = cb;
+
+  setMethod(method) {
+    this.reqOptions.method = method.toUpperCase();
     return this;
   }
-  setConnectionOptions(connectionObj = {}) {
-    const { protocol, hostname, port, path, method } = connectionObj;
-    this.reqObj.protocol = protocol ?? "http:";
-    this.reqObj.hostname = hostname ?? "localhost";
-    this.reqObj.port = port ?? 80;
-    this.reqObj.path = path ?? "/api/data";
-    this.reqObj.method = method ?? "GET";
+
+  setURL({
+    protocol = "http:",
+    hostname = "localhost",
+    port = 80,
+    path = "/",
+  }) {
+    this.reqOptions.protocol = protocol;
+    this.reqOptions.hostname = hostname;
+    this.reqOptions.port = port;
+    this.reqOptions.path = path;
     return this;
   }
-  setHeaders(headeObj) {
-    if (!headeObj) {
-      this.reqObj.setDefaultHeaders = true;
-      return this;
-    }
-    this.reqObj.headers = headeObj;
+
+  setQueryParams(params = {}) {
+    this.queryParams = { ...this.queryParams, ...params };
     return this;
   }
-  setTuning(timeout) {
-    this.reqObj.agent = false;
-    this.reqObj.timeout = timeout ?? 5000;
+
+  setBody(data) {
+    this.bodyData = typeof data === "object" ? JSON.stringify(data) : data;
+
+    typeof data === "object"
+      ? this.setHeaders({ "Content-Type": "application/json" })
+      : this.setHeaders({ "Content-Type": "text/html; charset=utf-8" });
+
     return this;
   }
-  build() {
-    return new Request(this.reqObj, this.cb).build();
+
+  setTimeout(ms) {
+    this.reqOptions.timeout = ms;
+    return this;
+  }
+
+  invoke() {
+    return new Promise((resolve, reject) => {
+      const queryString = stringify(this.queryParams);
+      const fullPath =
+        this.reqOptions.path + (queryString ? `?${queryString}` : "");
+      this.reqOptions.path = fullPath;
+
+      const req = request(this.reqOptions, (res) => {
+        let data = "";
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => resolve(data));
+      });
+
+      req.on("error", reject);
+
+      if (this.bodyData) {
+        req.write(this.bodyData);
+      }
+
+      req.end();
+    });
   }
 }

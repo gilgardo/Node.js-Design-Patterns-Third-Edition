@@ -44,7 +44,7 @@ const decorateLogger = (strategy) => {
 
 const consoleStrategy = (logPlaces) => {
   return new Proxy(console, {
-    get(target, prop, receiver) {
+    get(target, prop) {
       if (!logPlaces.includes(prop)) throw new Error("invalid prop");
       return (...arg) => target[prop](...arg);
     },
@@ -75,4 +75,4 @@ const consoleLogger = decorateLogger(consoleStrategy);
 
 const fileLogger = decorateLogger(fileStrategy);
 consoleLogger.log("hello");
-console.error("lol");
+consoleLogger.log(fileLogger.sendStrategyIstance);
