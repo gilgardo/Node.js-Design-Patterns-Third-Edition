@@ -19,59 +19,6 @@
 
 const states = ["arriving", "stored", "delivered"];
 
-class ItemState {
-  #state;
-  #locationId;
-  #addressId;
-
-  constructor(state, locationId = null, addressId = null) {
-    this.#state = state;
-    this.#locationId = locationId;
-    this.#addressId = addressId;
-  }
-
-  changeState(providedState, id) {
-    const checkState = (condition) => {
-      if (condition) {
-        throw new Error(
-          `Invalid state transition: ${this.#state} → ${providedState}`
-        );
-      }
-    };
-
-    switch (providedState) {
-      case "arriving":
-        checkState(this.#state !== "arriving");
-        break;
-      case "stored":
-        checkState(this.#state === "delivered");
-        this.#state = providedState;
-        this.#locationId = id;
-        break;
-      case "delivered":
-        checkState(this.#state === "arriving");
-        this.#state = providedState;
-        this.#locationId = null;
-        this.#addressId = id;
-        break;
-      default:
-        checkState(true);
-    }
-  }
-
-  getState() {
-    return this.#state;
-  }
-
-  getLocationId() {
-    return this.#locationId;
-  }
-
-  getAddressId() {
-    return this.#addressId;
-  }
-}
-
 const mockAddresses = [
   "John Smith, 1st Avenue, New York",
   "Alice Johnson, 42 Elm Street, Springfield",
@@ -82,56 +29,108 @@ const mockAddresses = [
 
 const mockLocations = ["1ZH3", "3AB9", "5CD1", "7YX8", "2MK7"];
 
-class WarehouseItem {
-  constructor(id, itemState) {
-    this.id = id;
-    this.itemState = itemState;
+class ArrivingState {
+  constructor(item, setter) {
+    this.item = item;
+    this.setter = setter;
   }
-
   store(locationId) {
-    this.itemState.changeState("stored", locationId);
+    this.setter.setLocationId(locationId);
   }
-
-  deliver(addressId) {
-    this.itemState.changeState("delivered", addressId);
+  deliver() {
+    throw new Error("item needs to be stored first");
   }
 
   describe() {
-    const state = this.itemState.getState();
+    console.log(`Item ${this.item.id} is on its way to the warehouse`);
+  }
+}
 
-    switch (state) {
-      case "arriving":
-        return `Item ${this.id} is on its way to the warehouse.`;
-      case "stored":
-        return `Item ${this.id} is stored in location ${
-          mockLocations[this.itemState.getLocationId()]
-        }.`;
-      case "delivered":
-        return `Item ${this.id} was delivered to ${
-          mockAddresses[this.itemState.getAddressId()]
-        }.`;
-      default:
-        return `Item ${this.id} is in an unknown state.`;
+class StoredState {
+  constructor(item, setter) {
+    this.item = item;
+    this.setter = setter;
+  }
+  store(locationId) {
+    this.setter.setLocation(locationId);
+  }
+  deliver(addressId) {
+    this.setter.setLocationId(null);
+    this.setter.setAddressId(addressId);
+  }
+  describe() {
+    const id = this.item.id;
+    const location = mockLocations[this.item.locationId];
+    console.log(`Item ${id} is stored in location ${location}`);
+  }
+}
+
+class DeliveredSate {
+  constructor(item) {
+    this.item = item;
+  }
+  store() {
+    throw new Error("item already delivered cannot be stored");
+  }
+  deliver() {
+    throw new Error("item already delivered");
+  }
+  describe() {
+    const id = this.item.id;
+    const address = mockAddresses[this.item.addressId];
+    console.log(`Item ${id} was delivered to ${address}`);
+  }
+}
+class WarehouseItem {
+  #addressId;
+  #locationId;
+  #states;
+  #currentState;
+  constructor(
+    id,
+    description = {
+      state: "arriving",
+      locationId: null,
+      addressId: null,
     }
-  }
-}
-// const mockItem = new WarehouseItem(1, new ItemState("arriving"));
-// mockItem.store(3);
-// console.log(mockItem.describe());
-// mockItem.deliver(2);
-// console.log(mockItem.describe());
-// mockItem.store(1);
-
-class Countdown {
-  constructor(counter, action) {
-    this.dec = () => {
-      counter--;
-      if (counter === 0) {
-        action();
-      }
-      return this;
+  ) {
+    this.id = id;
+    this.#locationId = description.locationId;
+    this.#addressId = description.addressId;
+    this.#states = {
+      arriving: new ArrivingState(this, {
+        setLocationId: (id) => (this.#locationId = id),
+      }),
+      stored: new StoredState(this, {
+        setLocationId: (id) => (this.#locationId = id),
+        setAddressId: (id) => (this.#addressId = id),
+      }),
+      delivered: new DeliveredSate(this),
     };
+    this.#currentState = this.#states[description.state];
+  }
+  store(locationId) {
+    this.#currentState.store(locationId);
+    this.#currentState = this.#states.stored;
+  }
+  deliver(addressId) {
+    this.#currentState.deliver(addressId);
+    this.#currentState = this.#states.delivered;
+  }
+  describe() {
+    this.#currentState.describe();
+  }
+  get locationId() {
+    return this.#locationId;
+  }
+  get addressId() {
+    return this.#addressId;
   }
 }
 
-new Countdown(2, () => console.log("hello")).dec().dec().dec().dec();
+const mouse = new WarehouseItem(0);
+mouse.store(3);
+mouse.describe();
+mouse.deliver(1);
+mouse.describe();
+// mouse.store();
