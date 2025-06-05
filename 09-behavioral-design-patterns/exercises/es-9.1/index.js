@@ -1,3 +1,9 @@
+// Exercise 9.1 Logging with Strategy: Implement a logging component having
+// at least the following methods: debug(), info(), warn(), and error(). The
+// logging component should also accept a strategy that defines where the log
+// messages are sent. For example, we might have a ConsoleStrategy to send
+// the messages to the console, or a FileStrategy to save the log messages
+// to a file.
 import * as fs from "fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,8 +36,8 @@ class Logger {
 const decorateLogger = (strategy) => {
   const logger = new Logger(strategy, logPlaces);
   return new Proxy(logger, {
-    get(target, prop, receiver) {
-      if (prop in target) return Reflect.get(target, prop, receiver);
+    get(target, prop) {
+      if (prop in target) return Reflect.get(target, prop);
       if (!target.getLogPlaces().includes(prop))
         throw new Error("invalid prop");
       return (...arg) => target.sendStrategyIstance[prop](...arg);
@@ -42,22 +48,20 @@ const decorateLogger = (strategy) => {
   });
 };
 
-const consoleStrategy = (logPlaces) => {
+const consoleStrategy = () => {
   return new Proxy(console, {
     get(target, prop) {
-      if (!logPlaces.includes(prop)) throw new Error("invalid prop");
-      return (...arg) => target[prop](...arg);
+      const date = new Date().toLocaleTimeString();
+      return (...arg) => target[prop](date, ...arg);
     },
   });
 };
 
-const fileStrategy = (logPlaces) => {
+const fileStrategy = () => {
   return new Proxy(
     {},
     {
       get(_, prop) {
-        if (!logPlaces.includes(prop)) throw new Error("invalid prop");
-
         return async (data) => {
           const dir = join(__dirname, `${prop}.txt`);
           try {
@@ -75,4 +79,4 @@ const consoleLogger = decorateLogger(consoleStrategy);
 
 const fileLogger = decorateLogger(fileStrategy);
 consoleLogger.log("hello");
-consoleLogger.log(fileLogger.sendStrategyIstance);
+fileLogger.error("error");
